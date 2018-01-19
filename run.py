@@ -85,7 +85,10 @@ def login():
     if request.method == 'GET':
         if session.get('logged_in'):
             file_list = os.listdir('./web/uploads/')
-            file_list.remove('.DS_Store')
+            try:
+                file_list.remove('.DS_Store')
+            except:
+                pass
             return render_template("authenticated.html", username=session.get('username'), file_list=file_list, api_key=session.get('api_key'))
         else:
             return redirect('/?error=true')
@@ -99,7 +102,10 @@ def login():
             cur.execute("SELECT id FROM users WHERE username ='" + request.form['username'] + "'")
             session['user_id'] = cur.fetchone()[0]
             file_list = os.listdir('./web/uploads/')
-            file_list.remove('.DS_Store')
+            try:
+                file_list.remove('.DS_Store')
+            except:
+                pass
             return render_template("authenticated.html", username=session.get('username'), file_list=file_list, api_key=session.get('api_key'))
         else:
             return redirect('/?error=true')
