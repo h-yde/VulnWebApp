@@ -1,0 +1,20 @@
+<html>
+<head>
+  <title>Login</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+</head>
+<body>
+  <div style="padding: 15px;">
+    <h1>Login</h1>
+    <form method="POST" action="/login">
+      <input type="text" name="username" placeholder="Username"><br/><br/>
+      <input type="password" name="password" placeholder="Password"><br/><br/>
+      <input type="submit"><br/>
+    </form>
+    {% if login_error %}
+      <p style="color: red">No session for user. Please log in.</p>
+    {% endif %}
+  </div>
+  <script src="/js/bootstrap.min.js"></script>
+</body>
+</html>
