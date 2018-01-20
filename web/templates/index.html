@@ -12,7 +12,7 @@
       <input type="submit"><br/>
     </form>
     {% if login_error %}
-      <p style="color: red">No session for user. Please log in.</p>
+      <p style="color: red">{{ reason|safe }}</p>
     {% endif %}
   </div>
   <script src="/js/bootstrap.min.js"></script>

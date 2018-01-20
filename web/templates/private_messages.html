@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <title>Authenticated Area</title>
+    </head>
+    <body>
+        <p>Successfully Authenticated! Welcome, {{ my_username }}. [<a href="/">Dashboard</a>] [<a href="/logout">Logout</a>]</p>
+        
+            <u><h3>My Messages</h3></u>
+            {% for id, from_user, message, to_user in msg_data %}
+                <div style="width: 60%; margin-left: 2px; border: 1px solid black;">
+                    <table>
+                            <tr>
+                                <td><p>From: <b>{{ from_user }}</b></p></td>
+                                <td style="width: 50px;"></td>
+                            </tr>
+                    </table>
+                    <div style="width: 100%; padding-left: 15px;">
+                        <p style="font-family: monospace; padding-right: 15px;">{{ base64.b64decode(message)|safe}}</p>
+                        <a href="/private/delete/?msg={{id}}" style="float: right; padding-right: 25px;">Delete</a><br/>
+                    </div>
+                </div>
+                <br/>
+            {% endfor %}
+            
+    </body>
+</html>
