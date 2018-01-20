@@ -2,6 +2,7 @@
   <head>
     <title>Dashboard</title>
     <link rel="stylesheet" href="/css/bootstrap.min.css"/>
+    <link href="/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
     <style>
       body {
         position: relative;
@@ -24,6 +25,8 @@
       .form-group, .navbar {
         position: inherit;
         width: 45%;
+        padding: 5px;
+        padding-left: 15px;
         background-color: #e9ecef;
         margin-right: auto;
         margin-left: auto;
@@ -33,14 +36,13 @@
         overflow: hidden;
         position: inherit;
         border-radius: 3px;
-        padding: 10px;
-        margin: 5px;
         margin-right: auto;
         margin-left: auto;
       }
 
       #navigation-menu {
         overflow:visible;
+        margin-top: 50px;
         padding: 17px;
       }
 
@@ -49,7 +51,6 @@
         position: relative;
         margin-right: auto;
         margin-left: auto;
-        top: 1%;
         width: 45%;
         height: 35px;
         border-radius: 3px;
@@ -89,16 +90,14 @@
         right: 2%;
         top: 15%;
       }
-
-
     </style>
   </head>
-  <nav class="form-group">
-        <div class="welcomeMsg">Welcome, <b>{{ my_username }}</b>.</div>
+  <nav id="navigation-menu" class="form-group">
+        <div class="welcomeMsg">Welcome, <b>{{ username }}</b>.</div>
         <div class="navButtons">[<a href="/private/messages/">Private Messages</a>] [<a href="/logout">Logout</a>]</div>
   </nav>
   <body>
-    <div class="form-group">
+    <div style="height: 65%;" class="form-group">
       <div class="section1">
         <br/>
         <form id="upload-file" method="POST" action="/api/upload_file" enctype="multipart/form-data">
@@ -114,28 +113,6 @@
           <input class="form-control" type="password" name="password2" placeholder="Confirm Password">
           <input class="btn btn-primary" style="width: 100%;" type="submit" value="Change Password">
         </form>
-      </div>
-
-      <div style="z-index: 99999; display: inherit; float: left; margin-top: 50px;">
-        <br/>
-        <hr>
-        <form method="POST" action="/api/sendmessage/">
-          <h3>Send A Message</h3>
-        
-          {% if to %}
-            <input class="form-control" type="text" name="account_username" value="{{ to|safe }}" placeholder="Recipient"/>
-          {% else %}
-            <input class="form-control" type="text" name="account_username" placeholder="Recipient"/>
-          {% endif %}
-          {% if quote_id %}
-            <input type="hidden" name="quote_id" value="{{ quote_id }}">
-            <textarea class="form-control" name="message" placeholder="Type your message..." style="width: 100%; height: 100px;">[[ Quote ]]</textarea>
-          {% else %}
-            <textarea class="form-control" name="message" placeholder="Type your message..." style="width: 100%; height: 100px;"></textarea>
-          {% endif %}
-          <input class="btn btn-primary" type="submit" style="width:100%; margin-top: 5px;" value="Send Message">
-        </form>
-        <br/>
       </div>
       <div class="section2">
         <div>

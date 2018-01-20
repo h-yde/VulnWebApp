@@ -103,25 +103,21 @@ def support_jsonp(f):
 @app.route("/index", methods = ['GET', 'POST'])
 def login():
     if request.method == 'GET':
+        file_list = os.listdir('./web/uploads/')
+        try:
+            file_list.remove('.DS_Store')
+        except:
+            pass
         if session.get('logged_in'):
-            file_list = os.listdir('./web/uploads/')
-            try:
-                file_list.remove('.DS_Store')
-            except:
-                pass
-            vals = cur.execute("SELECT * FROM messages WHERE touser='" + session.get('username') + "';")
-            msg_data = cur.fetchall()
-            db.commit()
-            if request.args.get('to'):
-                if request.args.get('quote_id'):
-                    return render_template("authenticated.html", api_key=session.get('api_key'), my_username=session.get('username'), user_id=session.get('user_id'), to=request.args.get('to'), quote_id=request.args.get('quote_id'), msg_data=msg_data, base64=base64, file_list=file_list)
-                else:
-                    return render_template("authenticated.html", api_key=session.get('api_key'), my_username=session.get('username'), user_id=session.get('user_id'), to=request.args.get('to'), msg_data=msg_data, base64=base64, file_list=file_list)
-            else:
-                return render_template("authenticated.html", api_key=session.get('api_key'), user_id=session.get('user_id'), my_username=session.get('username'), msg_data=msg_data, base64=base64, file_list=file_list)
+            return render_template("authenticated.html", api_key=session.get('api_key'), user_id=session.get('user_id'), username=session.get('username'), base64=base64, file_list=file_list)
         else:
             return redirect('/')
     elif request.method == 'POST':
+        file_list = os.listdir('./web/uploads/')
+        try:
+            file_list.remove('.DS_Store')
+        except:
+            pass
         try:
             login_query = cur.execute("SELECT * FROM users WHERE username = '" + request.form['username'] + "' AND password = '" + request.form['password'] +  "'")
             if login_query > 0:
@@ -131,12 +127,6 @@ def login():
                 session['api_key'] = cur.fetchone()[0]
                 cur.execute("SELECT id FROM users WHERE username ='" + request.form['username'] + "'")
                 session['user_id'] = cur.fetchone()[0]
-                db.commit()
-                file_list = os.listdir('./web/uploads/')
-                try:
-                    file_list.remove('.DS_Store')
-                except:
-                    pass
                 return render_template("authenticated.html", user_id=session.get('user_id'), username=session.get('username'), file_list=file_list, api_key=session.get('api_key'))
             else:
                 user_exist = cur.execute("SELECT * FROM users WHERE username = '" + request.form['username'] + "'")
@@ -182,16 +172,23 @@ def send_message():
                         return redirect('/message/?message=You cannot send a message to yourself!&alert_type=danger&title=Error!')
         else:
             return redirect('/message/?message=Invalid HTTP Method!&alert_type=danger&title=Error!')
-    return redirect('/')
+    else:
+        return redirect('/')
         
 # Blind XSS
 @app.route("/private/messages/", methods = ["GET"])
 def priv_messages():
     if session.get("logged_in"):
-        vals = cur.execute("SELECT * FROM messages WHERE touser='" + session.get('username') + "';")
-        msg_data = cur.fetchall()
-        db.commit()
-        return render_template("private_messages.html", my_username=session.get('username'), my_id=session.get('user_id'), msg_data=msg_data, base64=base64)
+        if request.args.get('to'):
+            if request.args.get('quote_id'):
+                return render_template("private_messages.html", api_key=session.get('api_key'), username=session.get('username'), user_id=session.get('user_id'), to=request.args.get('to'), quote_id=request.args.get('quote_id'), base64=base64)
+            else:
+                return render_template("private_messages.html", api_key=session.get('api_key'), username=session.get('username'), user_id=session.get('user_id'), to=request.args.get('to'), base64=base64)
+        else:
+            vals = cur.execute("SELECT * FROM messages WHERE touser='" + session.get('username') + "';")
+            db.commit()
+            msg_data = cur.fetchall()
+            return render_template("private_messages.html", api_key=session.get('api_key'), username=session.get('username'), user_id=session.get('user_id'), to=request.args.get('to'), base64=base64, msg_data=msg_data)
     else:
         return redirect('/')
 

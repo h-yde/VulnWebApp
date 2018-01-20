@@ -5,12 +5,11 @@
         <link href="/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
         <style>
             h3 {
-                text-decoration: underline;
                 font-weight: bold;
             }
         
             .form-group, .navbar {
-                width: 90%;
+                width: 60%;
                 background-color: #e9ecef;
                 margin-right: auto;
                 margin-left: auto;
@@ -18,7 +17,6 @@
         
             .form-group {
                 position: relative;
-                margin-top: 50px;
                 border-radius: 3px;
                 padding: 30px;
                 min-height: 100%;
@@ -60,15 +58,37 @@
                 right: 7px;
                 top: -35px;
             }
+
+            #box{
+                margin-top: 100px;
+            }
         </style>
     </head>
     <body>
-        <div class="form-group">
-            <div class="welcomeMsg"><p>Welcome, <b>{{ my_username }}</b>.</p></div>
+        <div id="box" class="form-group">
+            <div class="welcomeMsg"><p>Welcome, <b>{{ username }}</b>.</p></div>
             <div class="navButtons"><p>[<a href="/">Dashboard</a>] [<a href="/logout">Logout</a>]</p></div>
+            <div style="z-index: 99999; display: inherit;  margin-right: auto; margin-left: auto;">
+                <form method="POST" action="/api/sendmessage/">
+                <h3>Send A Message</h3>
+                
+                {% if to %}
+                    <input class="form-control" type="text" name="account_username" value="{{ to|safe }}" placeholder="Recipient"/>
+                {% else %}
+                    <input class="form-control" type="text" name="account_username" placeholder="Recipient"/>
+                {% endif %}
+                {% if quote_id %}
+                    <input type="hidden" name="quote_id" value="{{ quote_id }}">
+                    <textarea class="form-control" name="message" placeholder="Type your message..." style="width: 100%; height: 100px;">[[ Quote ]]</textarea>
+                {% else %}
+                    <textarea class="form-control" name="message" placeholder="Type your message..." style="width: 100%; height: 100px;"></textarea>
+                {% endif %}
+                <input class="btn btn-primary" type="submit" style="width:100%; margin-top: 5px;" value="Send Message">
+                </form>
+                <hr>
+            </div>
             <h3>My Messages</h3>
             {% for id, from_user, message, to_user in msg_data %}
-                <hr>
                 <div style="width: 95%; margin-left: 2px;">
                     <table>
                             <tr>
@@ -80,15 +100,16 @@
                     </div>
                     <table style="margin-left: 20px;">
                         <tr>
-                            <td><a href="/index?to={{from_user}}"><button class="btn btn-primary">Reply <i class="fa fa-reply" aria-hidden="true"></i></button></a></td>
-                            <td><a href="/index?to={{from_user}}&quote_id={{id}}"><button class="btn btn-success">Quote Reply <i class="fa fa-quote-left" aria-hidden="true"></i></button></td>
+                            <td><a href="/private/messages/?to={{from_user}}"><button class="btn btn-primary">Reply <i class="fa fa-reply" aria-hidden="true"></i></button></a></td>
+                            <td><a href="/private/messages/?to={{from_user}}&quote_id={{id}}"><button class="btn btn-success">Quote Reply <i class="fa fa-quote-left" aria-hidden="true"></i></button></td>
                             <td><a href="/private/delete/?msg={{id}}"><button class="btn btn-danger">Delete <i class="fa fa-trash" aria-hidden="true"></i></button></a></td>
                         </tr>
                     </table>
                 </div>
-                
+                <hr>
             {% endfor %}
         </div>
+        
         <footer class="sticky-footer">
             <div class="container">
                 <div class="text-center">
