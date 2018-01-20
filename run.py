@@ -14,17 +14,17 @@ cur.execute("SELECT * FROM users")
 @app.route("/")
 def index():
     if not session.get('logged_in'):
-        if request.args.get('error') == "true":
-            return render_template("index.html", login_error=True, reason=request.args.get('reason'))
-        else:
-            return render_template("index.html")
+        return render_template("index.html", login_error=True, reason=request.args.get('reason'))
     else:
-        return redirect('/login')
+        return redirect("/index")
 
 @app.route("/logout", methods = ['GET', 'POST'])
 def logout():
-    session.pop('logged_in')
-    return redirect('/')
+    if session.get('logged_in') == True:
+        session.pop('logged_in')
+        return redirect('/')
+    else:
+        return redirect('/')
 
 @app.route("/api/upload_file", methods = ['GET', 'POST'])
 def upload_file():
@@ -49,7 +49,7 @@ def upload_file():
                         # Send Current Filename, Original File Name, and Download key to database
                         uploaded_file.save("./web/uploads/" + new_filename)
                         flash("Uploaded")
-                        return redirect("/login")
+                        return redirect("/")
             else:
                 return jsonify({'error_msg': 'INVALID HTTP METHOD'})
         else:
@@ -57,38 +57,50 @@ def upload_file():
     else:
         return jsonify({'error_msg': 'NOT LOGGED IN'})
 
-@app.route("/api/file/<api_key>/<original_filename>/", methods = ['GET'])
+@app.route("/api/file/<api_key>/<original_filename>", methods = ['GET'])
 def download_user_file(api_key, original_filename):
     if session.get('logged_in'):
-        if api_key == session.get('api_key'):
-                path = "./web/uploads/%s" % (original_filename)
-                if os.path.exists(path):
-                    return send_file(path, as_attachment=True)
-                else:
-                    return jsonify({"error_msg":"file does not exist"})
-        else:
+        if request.method == "GET":
+            if api_key == session.get('api_key'):
+                    path = "./web/uploads/%s" % (original_filename)
+                    if os.path.exists(path):
+                        with open(path, 'r') as file:
+                            return file.read()
+                    else:
+                        return jsonify({"error_msg":"file does not exist"})
+            else:
                 return jsonify({"error_msg":"invalid api_key"})
+        else:
+            return jsonify({'error_msg': 'INVALID HTTP METHOD'})
+    else:
+        return jsonify({'error_msg': 'NOT LOGGED IN'})
 
 @app.route("/message/", methods = ['GET'])
 def error_page():
     title = request.args.get('title')
     message = request.args.get('message')
-    color = request.args.get('color')
-    return render_template("error.html", title=title, message=message, color=color)
+    alert_type = request.args.get('alert_type')
+    return render_template("error.html", title=title, message=message, alert_type=alert_type)
 
 def support_jsonp(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         callback = request.args.get('callback', False)
         if callback:
-            content = str(callback) + '(' + str(f().data) + ')'
-            return current_app.response_class(content, mimetype='text/html')
+            try:
+                content = str(callback) + '(' + str(f().data) + ')'
+            except:
+                content = ''
+            if session.get('logged_in'):
+                return current_app.response_class(content, mimetype='text/html')
+            else:
+                return redirect('/')
         else:
             return f(*args, **kwargs)
     return decorated_function
 
 # SQL Injection / Bruteforce
-@app.route("/login", methods = ['GET', 'POST'])
+@app.route("/index", methods = ['GET', 'POST'])
 def login():
     if request.method == 'GET':
         if session.get('logged_in'):
@@ -97,61 +109,91 @@ def login():
                 file_list.remove('.DS_Store')
             except:
                 pass
-            return render_template("authenticated.html", user_id=session.get('user_id'), username=session.get('username'), file_list=file_list, api_key=session.get('api_key'))
-        else:
-            return redirect('/?error=true')
-    elif request.method == 'POST':
-        login_query = cur.execute("SELECT * FROM users WHERE username = '" + request.form['username'] + "' AND password = '" + request.form['password'] +  "'")
-        if login_query == True:
-            session['logged_in'] = True
-            session['username'] = request.form['username']
-            cur.execute("SELECT api_key FROM users WHERE username ='" + request.form['username'] + "'")
-            session['api_key'] = cur.fetchone()[0]
-            cur.execute("SELECT id FROM users WHERE username ='" + request.form['username'] + "'")
-            session['user_id'] = cur.fetchone()[0]
+            vals = cur.execute("SELECT * FROM messages WHERE touser='" + session.get('username') + "';")
+            msg_data = cur.fetchall()
             db.commit()
-            file_list = os.listdir('./web/uploads/')
-            try:
-                file_list.remove('.DS_Store')
-            except:
-                pass
-            return render_template("authenticated.html", user_id=session.get('user_id'), username=session.get('username'), file_list=file_list, api_key=session.get('api_key'))
-        else:
-            user_exist = cur.execute("SELECT * FROM users WHERE username = '" + request.form['username'] + "'")
-            if user_exist == True:
-                return redirect('/?error=true&reason=Invalid Password!')
+            if request.args.get('to'):
+                if request.args.get('quote_id'):
+                    return render_template("authenticated.html", api_key=session.get('api_key'), my_username=session.get('username'), user_id=session.get('user_id'), to=request.args.get('to'), quote_id=request.args.get('quote_id'), msg_data=msg_data, base64=base64, file_list=file_list)
+                else:
+                    return render_template("authenticated.html", api_key=session.get('api_key'), my_username=session.get('username'), user_id=session.get('user_id'), to=request.args.get('to'), msg_data=msg_data, base64=base64, file_list=file_list)
             else:
-                return redirect('/?error=true&reason=User does not exist!')
+                return render_template("authenticated.html", api_key=session.get('api_key'), user_id=session.get('user_id'), my_username=session.get('username'), msg_data=msg_data, base64=base64, file_list=file_list)
+        else:
+            return redirect('/')
+    elif request.method == 'POST':
+        try:
+            login_query = cur.execute("SELECT * FROM users WHERE username = '" + request.form['username'] + "' AND password = '" + request.form['password'] +  "'")
+            if login_query > 0:
+                session['logged_in'] = True
+                session['username'] = request.form['username']
+                cur.execute("SELECT api_key FROM users WHERE username ='" + request.form['username'] + "'")
+                session['api_key'] = cur.fetchone()[0]
+                cur.execute("SELECT id FROM users WHERE username ='" + request.form['username'] + "'")
+                session['user_id'] = cur.fetchone()[0]
+                db.commit()
+                file_list = os.listdir('./web/uploads/')
+                try:
+                    file_list.remove('.DS_Store')
+                except:
+                    pass
+                return render_template("authenticated.html", user_id=session.get('user_id'), username=session.get('username'), file_list=file_list, api_key=session.get('api_key'))
+            else:
+                user_exist = cur.execute("SELECT * FROM users WHERE username = '" + request.form['username'] + "'")
+                if user_exist == True:
+                    return redirect('/?error=true&reason=Invalid Password!')
+                else:
+                    return redirect('/?error=true&reason=User does not exist!')
+        except:
+            return redirect('/?error=true&reason=Database Error!')
     else:
-        return redirect('/message/?message=Invalid HTTP Method!&color=red&title=Error!')
+        return redirect('/message/?message=Invalid HTTP Method!&alert_type=danger&title=Error!')
 
 # Blind XSS
 @app.route("/api/sendmessage/", methods = ['GET', 'POST'])
 def send_message():
     if session.get('logged_in'):
-        message = base64.b64encode(request.form['message'])
-        from_user = session.get('username')
-        to_user = request.form['account_username']
-        if to_user != from_user:
-            if cur.execute("SELECT * FROM users WHERE username = '" + to_user + "';"):
-                cur.execute("SELECT * FROM messages")
-                cur.execute("INSERT INTO messages (fromuser,message,touser) VALUES ('%s','%s','%s');" % (from_user, message, to_user))
-                db.commit()
-                return redirect('/message/?message=Message Sent!&color=black&title=Success!')
-            else:
-                return redirect('/message/?message=User doesn\'t exist!&color=red&title=Error!')
+        if request.method == "POST":
+            to_user = request.form['account_username']
+            from_user = session.get('username')
+            if to_user:
+                message = base64.b64encode(request.form['message'])
+                try:
+                    quote_id = request.form['quote_id']
+                    if quote_id:
+                        cur.execute("SELECT message FROM messages WHERE id='" + quote_id + "';")
+                        db.commit()
+                        quote_reply = base64.b64decode(cur.fetchone()[0])
+                        message = base64.b64encode(request.form['message'].replace('[[ Quote ]]', '<p style="font-family: monospace;">' + quote_reply + '</p><hr><p style="font-family: monospace; margin-left: 15px;">'))
+                        cur.execute("SELECT * FROM messages")
+                        cur.execute("INSERT INTO messages (fromuser,message,touser) VALUES ('%s','%s','%s');" % (from_user, message, to_user))
+                        db.commit()
+                        return redirect('/message/?message=Message Sent!&alert_type=success&title=Success!')
+                except Exception, e:
+                    if to_user != from_user:
+                        if cur.execute("SELECT * FROM users WHERE username = '" + to_user + "';"):
+                            cur.execute("SELECT * FROM messages")
+                            cur.execute("INSERT INTO messages (fromuser,message,touser) VALUES ('%s','%s','%s');" % (from_user, message, to_user))
+                            db.commit()
+                            return redirect('/message/?message=Message Sent!&alert_type=success&title=Success!')
+                        else:
+                            return redirect('/message/?message=User does not exist!&alert_type=danger&title=Error!')
+                    else:
+                        return redirect('/message/?message=You cannot send a message to yourself!&alert_type=danger&title=Error!')
         else:
-            return redirect('/message/?message=You can\'t send a message to yourself!&color=black&title=Error!')
-    else:
-        return redirect('/')
-
+            return redirect('/message/?message=Invalid HTTP Method!&alert_type=danger&title=Error!')
+    return redirect('/')
+        
 # Blind XSS
 @app.route("/private/messages/", methods = ["GET"])
 def priv_messages():
-    vals = cur.execute("SELECT * FROM messages WHERE touser='" + session.get('username') + "';")
-    msg_data = cur.fetchall()
-    db.commit()
-    return render_template("private_messages.html", my_username=session.get('username'), msg_data=msg_data,base64=base64)
+    if session.get("logged_in"):
+        vals = cur.execute("SELECT * FROM messages WHERE touser='" + session.get('username') + "';")
+        msg_data = cur.fetchall()
+        db.commit()
+        return render_template("private_messages.html", my_username=session.get('username'), my_id=session.get('user_id'), msg_data=msg_data, base64=base64)
+    else:
+        return redirect('/')
 
 # IDOR
 @app.route("/private/delete/", methods = ["GET"])
@@ -162,7 +204,7 @@ def delete_priv_messages():
         db.commit()
         return redirect("/private/messages/")
     else:
-        return redirect('/message/?message=Error! Not logged in!&color=red&title=Error!')
+        return redirect('/message/?message=Error! Not logged in!&alert_type=danger&title=Error!')
 
 # MySQL Injection
 @app.route("/api/username/", methods = ['GET'])
@@ -176,6 +218,10 @@ def get_user_by_id():
                 return jsonify({"username":username})
             except Exception, e:
                 return jsonify({"error_msg": str(e)})
+        else:
+            return redirect('/message/?message=Invalid HTTP Method!&alert_type=danger&title=Error!')
+    else:
+        return redirect('/')
 
 # Blind MySQL Injection
 @app.route("/api/id/", methods = ['GET'])
@@ -188,7 +234,11 @@ def get_id_by_user():
                 db.commit()
                 return jsonify({"username":username})
             except:
-                return redirect('/message/?message=An error has occured!&color=red&title=Error!')
+                return redirect('/message/?message=An error has occured!&alert_type=danger&title=Error!')
+        else:
+            return redirect('/message/?message=Invalid HTTP Method!&alert_type=danger&title=Error!')
+    else:
+        return redirect('/')
     
 # Cross Site Request Forgery
 @app.route("/api/password_change/", methods = ['GET'])
@@ -198,11 +248,13 @@ def password_change():
             if request.args.get('password1') == request.args.get('password2'):
                 cur.execute("UPDATE users SET password ='" + request.args.get('password1') + "' WHERE username = '" + session['username'] + "'")
                 db.commit()
-                return render_template("password_changed.html")
+                return redirect('/message/?message=<b>Password Changed!</b>&alert_type=success&title=Success!')
             else:
-                return redirect('/message/?message=Passwords did not match!&color=red&title=Error!')
+                return redirect('/message/?message=Passwords did not match!&alert_type=danger&title=Error!')
         else:
-            return redirect('/message/?message=Invalid HTTP Method!&color=red&title=Error!')
+            return redirect('/message/?message=Invalid HTTP Method!&alert_type=danger&title=Error!')
+    else:
+        return redirect('/')
 
 # Open Redirect / XSS
 @app.route('/redirect', methods=['GET'])
@@ -215,25 +267,27 @@ def url_redirection():
 # Reflected File Download
 @app.route("/api/userinfo/<filename>/", methods = ['GET'])
 def jsonp_download(filename):
-    if session.get('logged_in') != None:
+    if session.get('logged_in'):
         with open('/tmp/' + filename, "w") as userinfo_file:
-            userinfo_file.write(request.args.get('callback') + '(' + json.dumps({"userid":session.get('user_id'),"username":session.get('username'),"api_key":session.get('api_key')}) + str(')'))
+            try:
+                userinfo_file.write(request.args.get('callback') + '(' + json.dumps({"userid":session.get('user_id'),"username":session.get('username'),"api_key":session.get('api_key')}) + str(')'))
+            except:
+                return redirect('/')
         return send_file('/tmp/' + secure_filename(filename), secure_filename(filename), as_attachment=True)
     else:
-        return redirect('/message/?color=red&message=Error! \'callback\' parameter is missing!&color=red&title=Error!')
+        return redirect('/message/?color=red&message=Error! \'callback\' parameter is missing!&alert_type=danger&title=Error!')
 
 # XSSi / XSS
 @app.route("/api/userinfo/", methods = ['GET'])
 @support_jsonp
 def jsonp_view():
     if session.get('logged_in'):
-        if request.args.get('callback') != None:
+        if request.method == 'GET':
             return jsonify({"userid":session.get('user_id'),"username":session.get('username'),"api_key":session.get('api_key')})
         else:
-            return redirect('/message/?message=Error! \'callback\' parameter is missing!&color=red&title=Error!')
+            return redirect('/message/?message=Invalid HTTP Method!&alert_type=danger&title=Error!')
     else:
-       return redirect('/message/?message=Error! Not logged in!&color=red&title=Error!')
-
+        return redirect('/')
 # IDOR
 @app.route("/api/api_key/", methods = ['GET'])
 @support_jsonp
@@ -245,7 +299,7 @@ def my_api_key():
             db.commit()
             return jsonify({"api_key":api_key})
     else:
-        return redirect('/message/?message=Error! Not logged in!&color=red&title=Error!')
+        return redirect('/message/?message=Error! Not logged in!&alert_type=danger&title=Error!')
 
 # CORS Misconfiguration
 @app.route("/api/userinfo/json/", methods = ['GET'])
@@ -262,7 +316,7 @@ def json_view():
             resp.headers['Content-Type'] = 'application/json'
         return resp
     else:
-             return redirect('/message/?message=Error! Not logged in!&color=red&title=Error!')
+             return redirect('/message/?message=Error! Not logged in!&alert_type=danger&title=Error!')
 app.config['SESSION_COOKIE_HTTPONLY'] = False
 app.config['SECRET_KEY'] = "lollolol-lolol-lololol-lolol-lolololol"  # Used for session generation
 app.debug=False
