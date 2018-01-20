@@ -15,7 +15,7 @@
       <p><a href="/api/file/{{ api_key }}/{{ file }}">{{file}}</a></p>
     {% endfor %}
     <h3>Resources</h3>
-    <a href="http://127.0.0.1:5000/redirect?url=http://google.com">Google</a><br>
+    <a href="/redirect?url=http://google.com">Google</a><br>
     
     <h3>Change Password</h3>
     <form action="/api/password_change/" method="GET">
@@ -24,12 +24,12 @@
       <input type="submit" value="Change Password">
     </form>
     <h3>API Endpoints</h3>
-    <a href="http://127.0.0.1:5000/api/userinfo/?callback=info">JSONP User Information</a></br>
-    <a href="http://127.0.0.1:5000/api/userinfo/userinfo.txt/?callback=info">JSONP User Information Download</a></br>
-    <a href="http://127.0.0.1:5000/api/userinfo/json/">JSON User Information</a><br/>
-    <a href="http://127.0.0.1:5000/api/username/?id=1">Get Username by ID</a><br>
-    <a href="http://127.0.0.1:5000/api/id/?username=admin">Get ID by Username</a><br/>
-    <a href="http://127.0.0.1:5000/api/api_key/?id={{ user_id }}">Get My API Key</a>
+    <a href="/api/userinfo/?callback=info">JSONP User Information</a></br>
+    <a href="/api/userinfo/userinfo.txt/?callback=info">JSONP User Information Download</a></br>
+    <a href="/api/userinfo/json/">JSON User Information</a><br/>
+    <a href="/api/username/?id=1">Get Username by ID</a><br>
+    <a href="/api/id/?username=admin">Get ID by Username</a><br/>
+    <a href="/api/api_key/?id={{ user_id }}">Get My API Key</a>
 
 
     <h3>Send A Message</h3>
